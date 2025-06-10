@@ -61,7 +61,7 @@ public class CryptoBenchmark {
     private static class TimingResult {
         int operations;
         double elapsedTime;
-        
+
         TimingResult(int operations, double elapsedTime) {
             this.operations = operations;
             this.elapsedTime = elapsedTime;
@@ -73,13 +73,13 @@ public class CryptoBenchmark {
         int ops = 0;
         long startTime = System.nanoTime();
         double elapsedTime = 0;
-        
+
         do {
             operation.run();
             ops++;
             elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
         } while (elapsedTime < TEST_MIN_TIME_SECONDS);
-        
+
         return new TimingResult(ops, elapsedTime);
     }
 
@@ -527,7 +527,6 @@ public class CryptoBenchmark {
             return false;
         }
     }
-    /* This method has been replaced by printBenchmarkResults */
 
     /* Run RSA benchmarks for specified provider and key size */
     private static void runRSABenchmark(String providerName, int keySize) throws Exception {
@@ -609,12 +608,11 @@ public class CryptoBenchmark {
     }
 
     /* ECC keygen benchmark */
-    /* ECC keygen benchmark */
     private static void runECCBenchmark(String providerName, String curveName) throws Exception {
         /* Initialize key generator */
         final String finalProviderName;
         final KeyPairGenerator keyGen;
-        
+
         if (providerName.equals("SunJCE")) {
             keyGen = KeyPairGenerator.getInstance("EC", "SunEC");
             keyGen.initialize(new ECGenParameterSpec(curveName));
@@ -774,7 +772,7 @@ public class CryptoBenchmark {
         /* Key Agreement benchmark using helper */
         final KeyPair finalKeyPair1 = keyPair1;
         final KeyPair finalKeyPair2 = keyPair2;
-        
+
         TimingResult agreementResult = runBenchmark(() -> {
             try {
                 /* Create a new KeyAgreement instance for each operation */
@@ -1320,12 +1318,11 @@ public class CryptoBenchmark {
                 int keySize = getHmacKeySize(algorithm) * 8;
                 keyGen.init(keySize);
             } catch (Exception e) {
-                // Use default key size
             }
         } else {
             try {
                 KeyGenerator tempKeyGen = KeyGenerator.getInstance(algorithm, providerName);
-                tempKeyGen.generateKey(); // Test if key generation works with default settings
+                tempKeyGen.generateKey();
             } catch (Exception e) {
                 throw new IllegalArgumentException("Unsupported algorithm or unable to determine key size: " + algorithm);
             }
@@ -1385,7 +1382,6 @@ public class CryptoBenchmark {
     }
 
     /* Run ECDH benchmarks for specified provider and curve */
-    /* Run ECDH benchmarks for specified provider and curve */
     private static void runECDHBenchmark(String providerName, String curveName) throws Exception {
         /* Variables for benchmark operations */
         final String finalProviderName;
@@ -1423,7 +1419,7 @@ public class CryptoBenchmark {
         /* Key Agreement benchmark using helper */
         final KeyPair finalKeyPair1 = keyPair1;
         final KeyPair finalKeyPair2 = keyPair2;
-        
+
         TimingResult agreementResult = runBenchmark(() -> {
             try {
                 /* Create a new KeyAgreement instance for each operation to avoid "Object already has a key" error */
@@ -1437,7 +1433,7 @@ public class CryptoBenchmark {
         });
 
         String agreementOp = String.format("ECDH %s agree", curveName);
-        printBenchmarkResults(agreementResult.operations, agreementResult.elapsedTime, agreementOp, providerName, "ECDH");
+        printBenchmarkResults(agreementResult.operations, agreementResult.elapsedTime, agreementOp, finalProviderName, "ECDH");
     }
 
     public static void main(String[] args) {
