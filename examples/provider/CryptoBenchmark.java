@@ -73,7 +73,7 @@ public class CryptoBenchmark {
         int ops = 0;
         long startTime = System.nanoTime();
         long elapsedTimeNano = 0;
-        long minTimeNano = TEST_MIN_TIME_SECONDS * 1_000_000_000L; // Convert seconds to nanoseconds
+        long minTimeNano = TEST_MIN_TIME_SECONDS * 1_000_000_000L;
 
         do {
             operation.run();
@@ -81,7 +81,7 @@ public class CryptoBenchmark {
             elapsedTimeNano = System.nanoTime() - startTime;
         } while (elapsedTimeNano < minTimeNano);
 
-        double elapsedTime = elapsedTimeNano / 1_000_000_000.0; // Convert nanoseconds to seconds
+        double elapsedTime = elapsedTimeNano / 1_000_000_000.0;
 
         return new TimingResult(ops, elapsedTime);
     }
@@ -356,27 +356,24 @@ public class CryptoBenchmark {
         /* Sort operations by category and name for better grouping */
         List<String> sortedOperations = new ArrayList<>(groupedResults.keySet());
         Collections.sort(sortedOperations, (a, b) -> {
-            // Group by algorithm type first
             String categoryA = getOperationCategory(a);
             String categoryB = getOperationCategory(b);
-            
+
             int catCompare = categoryA.compareTo(categoryB);
             if (catCompare != 0) return catCompare;
-            
-            // Then sort by full operation name
+
             return a.compareTo(b);
         });
 
         /* Calculate and print deltas */
         Set<String> processedCombinations = new HashSet<>();
-        
+
         for (String operation : sortedOperations) {
             providerResults = groupedResults.get(operation);
             wolfSpeed = providerResults.getOrDefault("wolfJCE", 0.0);
-            
-            // Skip if wolfJCE doesn't have this operation
+
             if (wolfSpeed == 0.0) continue;
-            
+
             for (Map.Entry<String, Double> providerEntry : providerResults.entrySet()) {
                 provider = providerEntry.getKey();
                 if (!provider.equals("wolfJCE")) {
@@ -384,11 +381,11 @@ public class CryptoBenchmark {
 
                     /* Format operation name nicely */
                     String displayOperation = formatOperationName(operation);
-                    
+
                     /* Calculate deltas */
                     deltaValue = wolfSpeed - otherSpeed;
                     deltaPercent = otherSpeed > 0 ? ((wolfSpeed / otherSpeed) - 1.0) * 100 : -100.0;
-                    
+
                     /* Create unique key to avoid duplicates */
                     String uniqueKey = operation + "|" + provider;
                     if (!processedCombinations.contains(uniqueKey)) {
@@ -407,7 +404,7 @@ public class CryptoBenchmark {
         System.out.println("--------------------------------------------------------------------------------------");
         System.out.println("* Delta Value: MiB/s for symmetric ciphers, operations/second for RSA and ECC");
     }
-    
+
     /* Helper method to categorize operations for sorting */
     private static String getOperationCategory(String operation) {
         if (operation.contains("RSA")) return "A-RSA";
@@ -420,19 +417,17 @@ public class CryptoBenchmark {
         if (operation.contains("PBKDF2")) return "H-PBKDF2";
         return "Z-Other";
     }
-    
+
     /* Helper method to format operation names nicely */
     private static String formatOperationName(String operation) {
-        // Remove any duplicate algorithm names in RSA operations
         if (operation.startsWith("RSA")) {
             return operation.replace(" (RSA/ECB/PKCS1Padding)", "");
         }
-        
-        // Handle specific formatting for common operations
+
         if (operation.contains("ECDH") || operation.contains("DH ")) {
             return operation;
         }
-        
+
         return operation;
     }
 
