@@ -57,6 +57,52 @@ public class CryptoBenchmark {
         }
     }
 
+    /* Helper class to store timing results from benchmark operations */
+    private static class TimingResult {
+        int operations;
+        double elapsedTime;
+        
+        TimingResult(int operations, double elapsedTime) {
+            this.operations = operations;
+            this.elapsedTime = elapsedTime;
+        }
+    }
+
+    /* Generic benchmark runner that executes an operation repeatedly for a minimum time */
+    private static TimingResult runBenchmark(Runnable operation) {
+        int ops = 0;
+        long startTime = System.nanoTime();
+        double elapsedTime = 0;
+        
+        do {
+            operation.run();
+            ops++;
+            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
+        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        
+        return new TimingResult(ops, elapsedTime);
+    }
+
+    /* Generic function to print benchmark results with operations per second */
+    private static void printBenchmarkResults(int operations, double totalTime, String operation,
+        String providerName, String mode) {
+        /* Variables for result calculations */
+        double avgTimeMs = (totalTime * 1000.0) / operations;
+        double opsPerSec = operations / totalTime;
+
+        /* Print formatted results */
+        System.out.printf("%-12s  %-8s %8d ops took %.3f sec, avg %.3f ms, %.3f ops/sec%n",
+            operation + " (" + mode + ")",
+            " ",
+            operations,
+            totalTime,
+            avgTimeMs,
+            opsPerSec);
+
+        /* Store results for delta table */
+        results.add(new BenchmarkResult(providerName, operation, opsPerSec));
+    }
+
     /* List to store all benchmark results */
     private static final List<BenchmarkResult> results = new ArrayList<>();
 
@@ -481,30 +527,7 @@ public class CryptoBenchmark {
             return false;
         }
     }
-    /* Print RSA results in simpler format */
-    private static void printKeyGenResults(int operations, double totalTime, String operation,
-        String providerName, String mode) {
-        /* Variables for result calculations */
-        double avgTimeMs;
-        double opsPerSec;
-
-        /* Calculate metrics */
-        avgTimeMs = (totalTime * 1000.0) / operations;
-        opsPerSec = operations / totalTime;
-
-        /* Print formatted results */
-        System.out.printf("%-12s  %-8s %8d ops took %.3f sec, avg %.3f ms, %.3f ops/sec%n",
-            operation + " (" + mode + ")",
-            " ",
-            operations,
-            totalTime,
-            avgTimeMs,
-            opsPerSec);
-
-        /* Store results for delta table */
-        String fullOperation = operation;
-        results.add(new BenchmarkResult(providerName, fullOperation, opsPerSec));
-    }
+    /* This method has been replaced by printBenchmarkResults */
 
     /* Run RSA benchmarks for specified provider and key size */
     private static void runRSABenchmark(String providerName, int keySize) throws Exception {
@@ -547,7 +570,7 @@ public class CryptoBenchmark {
         } while (elapsedTime < TEST_MIN_TIME_SECONDS);
 
         keyGenOp = String.format("RSA %d key gen", keySize);
-        printKeyGenResults(keyGenOps, elapsedTime, keyGenOp, providerName, cipherMode);
+        printBenchmarkResults(keyGenOps, elapsedTime, keyGenOp, providerName, cipherMode);
 
         /* For 2048-bit keys, test public/private operations */
         if (keySize == 2048) {
@@ -565,7 +588,7 @@ public class CryptoBenchmark {
                 elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
             } while (elapsedTime < TEST_MIN_TIME_SECONDS);
 
-            printKeyGenResults(publicOps, elapsedTime, "RSA 2048 public", providerName, cipherMode);
+            printBenchmarkResults(publicOps, elapsedTime, "RSA 2048 public", providerName, cipherMode);
 
             /* Private key operations benchmark */
             cipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
@@ -581,40 +604,38 @@ public class CryptoBenchmark {
                 elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
             } while (elapsedTime < TEST_MIN_TIME_SECONDS);
 
-            printKeyGenResults(privateOps, elapsedTime, "RSA 2048 private", providerName, cipherMode);
+            printBenchmarkResults(privateOps, elapsedTime, "RSA 2048 private", providerName, cipherMode);
         }
     }
 
     /* ECC keygen benchmark */
+    /* ECC keygen benchmark */
     private static void runECCBenchmark(String providerName, String curveName) throws Exception {
-        KeyPairGenerator keyGen;
-        int keyGenOps = 0;
-        long startTime;
-        double elapsedTime;
-
         /* Initialize key generator */
+        final String finalProviderName;
+        final KeyPairGenerator keyGen;
+        
         if (providerName.equals("SunJCE")) {
             keyGen = KeyPairGenerator.getInstance("EC", "SunEC");
             keyGen.initialize(new ECGenParameterSpec(curveName));
-            providerName = "SunEC";
+            finalProviderName = "SunEC";
         } else {
             keyGen = KeyPairGenerator.getInstance("EC", providerName);
             keyGen.initialize(new ECGenParameterSpec(curveName));
+            finalProviderName = providerName;
         }
 
-        /* Key Generation benchmark */
-        startTime = System.nanoTime();
-        elapsedTime = 0;
-
-        /* Run key generation benchmark */
-        do {
-            keyGen.generateKeyPair();
-            keyGenOps++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        /* Key Generation benchmark using helper */
+        TimingResult result = runBenchmark(() -> {
+            try {
+                keyGen.generateKeyPair();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         String keyGenOp = String.format("ECC %s key gen", curveName);
-        printKeyGenResults(keyGenOps, elapsedTime, keyGenOp, providerName, "EC");
+        printBenchmarkResults(result.operations, result.elapsedTime, keyGenOp, finalProviderName, "EC");
     }
 
     /* Get HMAC algorithms for a specific provider */
@@ -708,14 +729,9 @@ public class CryptoBenchmark {
     }
 
     /* Run DH benchmarks for specified provider and key size */
+    /* Run DH benchmarks for specified provider and key size */
     private static void runDHBenchmark(String providerName, int keySize) throws Exception {
         /* Variables for benchmark operations */
-        KeyPairGenerator keyGen;
-        KeyAgreement keyAgreement;
-        int keyGenOps;
-        int agreementOps;
-        long startTime;
-        double elapsedTime;
         KeyPair keyPair1 = null;
         KeyPair keyPair2 = null;
 
@@ -736,47 +752,43 @@ public class CryptoBenchmark {
         DHParameterSpec dhParams = new DHParameterSpec(p, g);
 
         /* Get KeyPairGenerator for DH */
-        keyGen = KeyPairGenerator.getInstance("DH", providerName);
-
-        /* Initialize with parameters */
+        final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("DH", providerName);
         keyGen.initialize(dhParams);
 
-        /* Key Generation benchmark */
-        keyGenOps = 0;
-        startTime = System.nanoTime();
-        elapsedTime = 0;
-
-        /* Run key generation benchmark */
-        do {
-            keyGen.generateKeyPair();
-            keyGenOps++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        /* Key Generation benchmark using helper */
+        TimingResult keyGenResult = runBenchmark(() -> {
+            try {
+                keyGen.generateKeyPair();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         String keyGenOp = String.format("DH %d key gen", keySize);
-        printKeyGenResults(keyGenOps, elapsedTime, keyGenOp, providerName, DH_ALGORITHM);
+        printBenchmarkResults(keyGenResult.operations, keyGenResult.elapsedTime, keyGenOp, providerName, DH_ALGORITHM);
 
         /* Generate key pairs for agreement operations */
         keyPair1 = keyGen.generateKeyPair();
         keyPair2 = keyGen.generateKeyPair();
 
-        /* Key Agreement benchmark */
-        keyAgreement = KeyAgreement.getInstance("DH", providerName);
-        agreementOps = 0;
-        startTime = System.nanoTime();
-        elapsedTime = 0;
-
-        /* Run key agreement benchmark */
-        do {
-          keyAgreement.init(keyPair1.getPrivate());
-          keyAgreement.doPhase(keyPair2.getPublic(), true);
-          keyAgreement.generateSecret();
-          agreementOps++;
-          elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        /* Key Agreement benchmark using helper */
+        final KeyPair finalKeyPair1 = keyPair1;
+        final KeyPair finalKeyPair2 = keyPair2;
+        
+        TimingResult agreementResult = runBenchmark(() -> {
+            try {
+                /* Create a new KeyAgreement instance for each operation */
+                KeyAgreement keyAgreement = KeyAgreement.getInstance("DH", providerName);
+                keyAgreement.init(finalKeyPair1.getPrivate());
+                keyAgreement.doPhase(finalKeyPair2.getPublic(), true);
+                keyAgreement.generateSecret();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         String agreementOp = String.format("DH %d agree", keySize);
-        printKeyGenResults(agreementOps, elapsedTime, agreementOp, providerName, DH_ALGORITHM);
+        printBenchmarkResults(agreementResult.operations, agreementResult.elapsedTime, agreementOp, providerName, DH_ALGORITHM);
     }
 
     /* PBKDF2 benchmark */
@@ -1289,14 +1301,10 @@ public class CryptoBenchmark {
 
     /* KeyGenerator benchmark */
     /* KeyGenerator benchmark */
+    /* KeyGenerator benchmark */
     private static void runKeyGeneratorBenchmark(String algorithm, String providerName) throws Exception {
-        KeyGenerator keyGen;
-        int ops = 0;
-        long startTime;
-        double elapsedTime;
-
         /* Initialize KeyGenerator with specific provider */
-        keyGen = KeyGenerator.getInstance(algorithm, providerName);
+        final KeyGenerator keyGen = KeyGenerator.getInstance(algorithm, providerName);
 
         /* Set appropriate key size based on algorithm */
         if (algorithm.equals("AES")) {
@@ -1312,11 +1320,12 @@ public class CryptoBenchmark {
                 int keySize = getHmacKeySize(algorithm) * 8;
                 keyGen.init(keySize);
             } catch (Exception e) {
+                // Use default key size
             }
         } else {
             try {
-                keyGen.generateKey();
-                keyGen = KeyGenerator.getInstance(algorithm, providerName);
+                KeyGenerator tempKeyGen = KeyGenerator.getInstance(algorithm, providerName);
+                tempKeyGen.generateKey(); // Test if key generation works with default settings
             } catch (Exception e) {
                 throw new IllegalArgumentException("Unsupported algorithm or unable to determine key size: " + algorithm);
             }
@@ -1327,19 +1336,18 @@ public class CryptoBenchmark {
             keyGen.generateKey();
         }
 
-        /* Benchmark phase */
-        startTime = System.nanoTime();
-        elapsedTime = 0;
+        /* Benchmark phase using helper */
+        TimingResult result = runBenchmark(() -> {
+            try {
+                keyGen.generateKey();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
-        do {
-            keyGen.generateKey();
-            ops++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
-
-        double opsPerSec = ops / elapsedTime;
+        double opsPerSec = result.operations / result.elapsedTime;
         System.out.printf(" %-40s  %8d ops took %.3f sec, %8.3f ops/sec%n",
-            algorithm + " (" + providerName + ")", ops, elapsedTime, opsPerSec);
+            algorithm + " (" + providerName + ")", result.operations, result.elapsedTime, opsPerSec);
 
         /* Store result */
         results.add(new BenchmarkResult(providerName, algorithm + " keygen", opsPerSec));
@@ -1377,14 +1385,11 @@ public class CryptoBenchmark {
     }
 
     /* Run ECDH benchmarks for specified provider and curve */
+    /* Run ECDH benchmarks for specified provider and curve */
     private static void runECDHBenchmark(String providerName, String curveName) throws Exception {
         /* Variables for benchmark operations */
-        KeyPairGenerator keyGen;
-        KeyAgreement keyAgreement;
-        int keyGenOps;
-        int agreementOps;
-        long startTime;
-        double elapsedTime;
+        final String finalProviderName;
+        final KeyPairGenerator keyGen;
         KeyPair keyPair1 = null;
         KeyPair keyPair2 = null;
 
@@ -1392,49 +1397,47 @@ public class CryptoBenchmark {
         if (providerName.equals("SunJCE")) {
             keyGen = KeyPairGenerator.getInstance("EC", "SunEC");
             keyGen.initialize(new ECGenParameterSpec(curveName));
-            providerName = "SunEC";
+            finalProviderName = "SunEC";
         } else {
             keyGen = KeyPairGenerator.getInstance("EC", providerName);
             keyGen.initialize(new ECGenParameterSpec(curveName));
+            finalProviderName = providerName;
         }
 
-        /* Key Generation benchmark */
-        keyGenOps = 0;
-        startTime = System.nanoTime();
-        elapsedTime = 0;
-
-        /* Run key generation benchmark */
-        do {
-            keyGen.generateKeyPair();
-            keyGenOps++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        /* Key Generation benchmark using helper */
+        TimingResult keyGenResult = runBenchmark(() -> {
+            try {
+                keyGen.generateKeyPair();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         String keyGenOp = String.format("ECDH %s key gen", curveName);
-        printKeyGenResults(keyGenOps, elapsedTime, keyGenOp, providerName, "ECDH");
+        printBenchmarkResults(keyGenResult.operations, keyGenResult.elapsedTime, keyGenOp, finalProviderName, "ECDH");
 
         /* Generate key pairs for agreement operations */
         keyPair1 = keyGen.generateKeyPair();
         keyPair2 = keyGen.generateKeyPair();
 
-        /* Key Agreement benchmark - create new KeyAgreement instance for each operation */
-        agreementOps = 0;
-        startTime = System.nanoTime();
-        elapsedTime = 0;
-
-        /* Run key agreement benchmark */
-        do {
-            /* Create a new KeyAgreement instance for each operation to avoid "Object already has a key" error */
-            keyAgreement = KeyAgreement.getInstance("ECDH", providerName);
-            keyAgreement.init(keyPair1.getPrivate());
-            keyAgreement.doPhase(keyPair2.getPublic(), true);
-            keyAgreement.generateSecret();
-            agreementOps++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+        /* Key Agreement benchmark using helper */
+        final KeyPair finalKeyPair1 = keyPair1;
+        final KeyPair finalKeyPair2 = keyPair2;
+        
+        TimingResult agreementResult = runBenchmark(() -> {
+            try {
+                /* Create a new KeyAgreement instance for each operation to avoid "Object already has a key" error */
+                KeyAgreement keyAgreement = KeyAgreement.getInstance("ECDH", finalProviderName);
+                keyAgreement.init(finalKeyPair1.getPrivate());
+                keyAgreement.doPhase(finalKeyPair2.getPublic(), true);
+                keyAgreement.generateSecret();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
 
         String agreementOp = String.format("ECDH %s agree", curveName);
-        printKeyGenResults(agreementOps, elapsedTime, agreementOp, providerName, "ECDH");
+        printBenchmarkResults(agreementResult.operations, agreementResult.elapsedTime, agreementOp, providerName, "ECDH");
     }
 
     public static void main(String[] args) {
