@@ -72,13 +72,16 @@ public class CryptoBenchmark {
     private static TimingResult runBenchmark(Runnable operation) {
         int ops = 0;
         long startTime = System.nanoTime();
-        double elapsedTime = 0;
+        long elapsedTimeNano = 0;
+        long minTimeNano = TEST_MIN_TIME_SECONDS * 1_000_000_000L; // Convert seconds to nanoseconds
 
         do {
             operation.run();
             ops++;
-            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
-        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+            elapsedTimeNano = System.nanoTime() - startTime;
+        } while (elapsedTimeNano < minTimeNano);
+
+        double elapsedTime = elapsedTimeNano / 1_000_000_000.0; // Convert nanoseconds to seconds
 
         return new TimingResult(ops, elapsedTime);
     }
