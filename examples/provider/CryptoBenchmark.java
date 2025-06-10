@@ -340,10 +340,10 @@ public class CryptoBenchmark {
         double deltaPercent;
 
         System.out.println("\nPerformance Delta (compared to wolfJCE)");
-        System.out.println("------------------------------------------------------------------------------------");
-        System.out.println("| Operation                                    | Provider     |  Delta   |   Delta  |");
-        System.out.println("|                                              |              |  Value*  |   (%)    |");
-        System.out.println("|----------------------------------------------|--------------|----------|----------|");
+        System.out.println("--------------------------------------------------------------------------------------");
+        System.out.println("| Operation                                    | Provider     |    Delta    |   Delta  |");
+        System.out.println("|                                              |              |    Value*   |   (%)    |");
+        System.out.println("|----------------------------------------------|--------------|-------------|----------|");
 
         /* Group results by operation */
         groupedResults = new HashMap<>();
@@ -353,63 +353,87 @@ public class CryptoBenchmark {
                 .put(result.provider, result.throughput);
         }
 
-        /* Sort operations to group RSA operations together */
+        /* Sort operations by category and name for better grouping */
         List<String> sortedOperations = new ArrayList<>(groupedResults.keySet());
         Collections.sort(sortedOperations, (a, b) -> {
-            boolean aIsRSA = a.startsWith("RSA");
-            boolean bIsRSA = b.startsWith("RSA");
-
-            if (aIsRSA && !bIsRSA) return -1;
-            if (!aIsRSA && bIsRSA) return 1;
+            // Group by algorithm type first
+            String categoryA = getOperationCategory(a);
+            String categoryB = getOperationCategory(b);
+            
+            int catCompare = categoryA.compareTo(categoryB);
+            if (catCompare != 0) return catCompare;
+            
+            // Then sort by full operation name
             return a.compareTo(b);
         });
 
         /* Calculate and print deltas */
+        Set<String> processedCombinations = new HashSet<>();
+        
         for (String operation : sortedOperations) {
             providerResults = groupedResults.get(operation);
             wolfSpeed = providerResults.getOrDefault("wolfJCE", 0.0);
-            boolean isRSAOperation = operation.startsWith("RSA");
-
+            
+            // Skip if wolfJCE doesn't have this operation
+            if (wolfSpeed == 0.0) continue;
+            
             for (Map.Entry<String, Double> providerEntry : providerResults.entrySet()) {
                 provider = providerEntry.getKey();
                 if (!provider.equals("wolfJCE")) {
                     otherSpeed = providerEntry.getValue();
 
-                    /* Adjust provider name for RSA operations */
-                    String displayProvider = provider;
-                    if (isRSAOperation) {
-                        if (operation.contains("key gen")) {
-                            displayProvider = "SunRsaSign"; /* Key generation uses SunRsaSign */
-                        } else {
-                            displayProvider = "SunJCE"; /* Public/private operations use SunJCE */
-                        }
-                    }
-
-                    if (isRSAOperation) {
-                        deltaValue = wolfSpeed - otherSpeed;
-                        deltaPercent = ((wolfSpeed / otherSpeed) - 1.0) * 100;
-                    } else {
-                        deltaValue = wolfSpeed - otherSpeed;
-                        deltaPercent = ((wolfSpeed / otherSpeed) - 1.0) * 100;
-                    }
-
-                    /* Ensure unique operation-provider combination */
-                    String uniqueKey = operation + "|" + displayProvider;
-                    if (!groupedResults.containsKey(uniqueKey)) {
-                        System.out.printf("| %-44s | %-12s | %+8.2f | %+8.1f |%n",
-                            operation.replace("RSA", "RSA/ECB/PKCS1Padding RSA"),
-                            displayProvider,
+                    /* Format operation name nicely */
+                    String displayOperation = formatOperationName(operation);
+                    
+                    /* Calculate deltas */
+                    deltaValue = wolfSpeed - otherSpeed;
+                    deltaPercent = otherSpeed > 0 ? ((wolfSpeed / otherSpeed) - 1.0) * 100 : -100.0;
+                    
+                    /* Create unique key to avoid duplicates */
+                    String uniqueKey = operation + "|" + provider;
+                    if (!processedCombinations.contains(uniqueKey)) {
+                        System.out.printf("| %-44s | %-12s | %+11.2f | %+8.1f |%n",
+                            displayOperation,
+                            provider,
                             deltaValue,
                             deltaPercent);
 
                         /* Mark this combination as processed */
-                        groupedResults.put(uniqueKey, null);
+                        processedCombinations.add(uniqueKey);
                     }
                 }
             }
         }
-        System.out.println("------------------------------------------------------------------------------------");
+        System.out.println("--------------------------------------------------------------------------------------");
         System.out.println("* Delta Value: MiB/s for symmetric ciphers, operations/second for RSA and ECC");
+    }
+    
+    /* Helper method to categorize operations for sorting */
+    private static String getOperationCategory(String operation) {
+        if (operation.contains("RSA")) return "A-RSA";
+        if (operation.contains("ECC") || operation.contains("ECDH")) return "B-ECC";
+        if (operation.contains("DH") && !operation.contains("ECDH")) return "C-DH";
+        if (operation.contains("AES")) return "D-AES";
+        if (operation.contains("DES")) return "E-DES";
+        if (operation.startsWith("HMAC") || operation.startsWith("Hmac")) return "F-HMAC";
+        if (operation.contains("SHA") && !operation.contains("HMAC")) return "G-SHA";
+        if (operation.contains("PBKDF2")) return "H-PBKDF2";
+        return "Z-Other";
+    }
+    
+    /* Helper method to format operation names nicely */
+    private static String formatOperationName(String operation) {
+        // Remove any duplicate algorithm names in RSA operations
+        if (operation.startsWith("RSA")) {
+            return operation.replace(" (RSA/ECB/PKCS1Padding)", "");
+        }
+        
+        // Handle specific formatting for common operations
+        if (operation.contains("ECDH") || operation.contains("DH ")) {
+            return operation;
+        }
+        
+        return operation;
     }
 
     /* Run symmetric encryption/decryption benchmarks */
