@@ -1376,6 +1376,67 @@ public class CryptoBenchmark {
         }
     }
 
+    /* Run ECDH benchmarks for specified provider and curve */
+    private static void runECDHBenchmark(String providerName, String curveName) throws Exception {
+        /* Variables for benchmark operations */
+        KeyPairGenerator keyGen;
+        KeyAgreement keyAgreement;
+        int keyGenOps;
+        int agreementOps;
+        long startTime;
+        double elapsedTime;
+        KeyPair keyPair1 = null;
+        KeyPair keyPair2 = null;
+
+        /* Initialize key generator */
+        if (providerName.equals("SunJCE")) {
+            keyGen = KeyPairGenerator.getInstance("EC", "SunEC");
+            keyGen.initialize(new ECGenParameterSpec(curveName));
+            providerName = "SunEC";
+        } else {
+            keyGen = KeyPairGenerator.getInstance("EC", providerName);
+            keyGen.initialize(new ECGenParameterSpec(curveName));
+        }
+
+        /* Key Generation benchmark */
+        keyGenOps = 0;
+        startTime = System.nanoTime();
+        elapsedTime = 0;
+
+        /* Run key generation benchmark */
+        do {
+            keyGen.generateKeyPair();
+            keyGenOps++;
+            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
+        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+
+        String keyGenOp = String.format("ECDH %s key gen", curveName);
+        printKeyGenResults(keyGenOps, elapsedTime, keyGenOp, providerName, "ECDH");
+
+        /* Generate key pairs for agreement operations */
+        keyPair1 = keyGen.generateKeyPair();
+        keyPair2 = keyGen.generateKeyPair();
+
+        /* Key Agreement benchmark - create new KeyAgreement instance for each operation */
+        agreementOps = 0;
+        startTime = System.nanoTime();
+        elapsedTime = 0;
+
+        /* Run key agreement benchmark */
+        do {
+            /* Create a new KeyAgreement instance for each operation to avoid "Object already has a key" error */
+            keyAgreement = KeyAgreement.getInstance("ECDH", providerName);
+            keyAgreement.init(keyPair1.getPrivate());
+            keyAgreement.doPhase(keyPair2.getPublic(), true);
+            keyAgreement.generateSecret();
+            agreementOps++;
+            elapsedTime = (System.nanoTime() - startTime) / 1_000_000_000.0;
+        } while (elapsedTime < TEST_MIN_TIME_SECONDS);
+
+        String agreementOp = String.format("ECDH %s agree", curveName);
+        printKeyGenResults(agreementOps, elapsedTime, agreementOp, providerName, "ECDH");
+    }
+
     public static void main(String[] args) {
         try {
             /* Check if Bouncy Castle is available */
@@ -1516,6 +1577,26 @@ public class CryptoBenchmark {
                     } catch (Exception e) {
                         System.out.printf("Failed to benchmark DH %d with provider %s: %s%n",
                             keySize, provider.getName(), e.getMessage());
+                    }
+                }
+            }
+
+            System.out.println("\n-----------------------------------------------------------------------------");
+            System.out.println("ECDH Benchmark Results");
+            System.out.println("-----------------------------------------------------------------------------");
+
+            for (Provider provider : providers) {
+                if (provider instanceof WolfCryptProvider && !FeatureDetect.EccDheEnabled()) {
+                    continue;
+                }
+                setupProvidersForTest(provider);
+                System.out.println("\n" + (provider.getName().equals("SunJCE") ? "SunJCE / SunEC" : provider.getName()) + ":");
+                for (String curve : ECC_CURVES) {
+                    try {
+                        runECDHBenchmark(provider.getName(), curve);
+                    } catch (Exception e) {
+                        System.out.printf("Failed to benchmark ECDH %s with provider %s: %s%n",
+                            curve, provider.getName(), e.getMessage());
                     }
                 }
             }
