@@ -103,7 +103,7 @@ public class CryptoBenchmark {
             opsPerSec);
 
         /* Store results for delta table */
-        results.add(new BenchmarkResult(providerName, operation, opsPerSec));
+        results.add(new BenchmarkResult(providerName, operation + " (" + mode + ")", opsPerSec));
     }
 
     /* List to store all benchmark results */
@@ -730,7 +730,6 @@ public class CryptoBenchmark {
     }
 
     /* Run DH benchmarks for specified provider and key size */
-    /* Run DH benchmarks for specified provider and key size */
     private static void runDHBenchmark(String providerName, int keySize) throws Exception {
         /* Variables for benchmark operations */
         KeyPair keyPair1 = null;
@@ -1300,8 +1299,6 @@ public class CryptoBenchmark {
         return getWolfJCEAlgorithmsForService("Signature");
     }
 
-    /* KeyGenerator benchmark */
-    /* KeyGenerator benchmark */
     /* KeyGenerator benchmark */
     private static void runKeyGeneratorBenchmark(String algorithm, String providerName) throws Exception {
         /* Initialize KeyGenerator with specific provider */
