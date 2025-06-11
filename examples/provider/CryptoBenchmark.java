@@ -241,7 +241,7 @@ public class CryptoBenchmark {
         return keyGen;
     }
 
-    /* Universal method to get algorithms for a specific provider and service type */
+    /* Method to get algorithms for a specific provider and service type */
     private static Set<String> getAlgorithmsForProvider(String providerName,
       String serviceType, Set<String> wolfJCEAlgorithms) {
         Set<String> algorithms = new TreeSet<>();
@@ -319,7 +319,7 @@ public class CryptoBenchmark {
         System.out.println();
     }
 
-    /* Universal method to get algorithms for a specific provider and service type */
+    /* Universal method get algorithms for specific provider and service type */
     private static Set<String> getAlgorithmsForService(String providerName,
       String serviceType) {
         Set<String> algorithms = new TreeSet<>();
@@ -718,7 +718,7 @@ public class CryptoBenchmark {
         return getWolfJCEAlgorithmsForService("Mac");
     }
 
-    /* Enhanced method to get HMAC algorithms for special provider cases, filtered by wolfJCE support */
+    /* Enhanced method to get HMAC algorithms for special provider cases */
     private static Set<String> getHmacAlgorithmsForProvider(String providerName,
       Set<String> wolfJCEAlgorithms) {
         return getAlgorithmsForProvider(providerName, "Mac", wolfJCEAlgorithms);
