@@ -96,7 +96,7 @@ public class CryptoBenchmark {
 
         /* Print formatted results */
         System.out.printf(
-            "%-12s  %-8s %8d ops took %.3f sec, avg %.3f ms, %.3f ops/sec%n",
+            " %-12s  %-8s %8d ops took %.3f sec, avg %.3f ms, %.3f ops/sec%n",
             operation + " (" + mode + ")",
             " ",
             operations,
@@ -956,7 +956,7 @@ public class CryptoBenchmark {
 
         double dataSizeMiB = (DATA_SIZE * ops) / (1024.0 * 1024.0);
         double throughput = dataSizeMiB / elapsedTime;
-        System.out.printf("%-40s %8.3f MiB took %.3f sec, %8.3f MiB/s%n",
+        System.out.printf(" %-40s %8.3f MiB took %.3f sec, %8.3f MiB/s%n",
             algorithm + " (" + providerName + ")", dataSizeMiB, elapsedTime,
             throughput);
         results.add(new BenchmarkResult(providerName, algorithm, throughput));
@@ -1090,7 +1090,6 @@ public class CryptoBenchmark {
         return getAlgorithmsForService(providerName, "Signature");
     }
 
-    /* Enhanced method to get signature algorithms for special provider cases, filtered by wolfJCE support */
     private static Set<String> getSignatureAlgorithmsForProvider(
       String providerName, Set<String> wolfJCEAlgorithms) {
         return getAlgorithmsForProvider(providerName,
@@ -1127,7 +1126,6 @@ public class CryptoBenchmark {
         }
     }
 
-    /* Enhanced method to get cipher algorithms for special provider cases, filtered by wolfJCE support */
     private static Set<String> getCipherAlgorithmsForProvider(
       String providerName, Set<String> wolfJCEAlgorithms) {
         Set<String> providerAlgorithms = getAlgorithmsForService(providerName,
@@ -1155,7 +1153,6 @@ public class CryptoBenchmark {
         return filteredAlgorithms;
     }
 
-    /* Enhanced method to get PBKDF2 algorithms for special provider cases, filtered by wolfJCE support */
     private static Set<String> getPBKDF2AlgorithmsForProvider(
       String providerName, Set<String> wolfJCEAlgorithms) {
         Set<String> providerAlgorithms = getAlgorithmsForService(providerName,
@@ -1624,9 +1621,9 @@ public class CryptoBenchmark {
                 printProviderInfo(provider);
             }
 
-            /* Run symmetric benchmarks with hardcoded algorithms (temporary fix) */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            /* Run symmetric benchmarks with hardcoded algorithms */
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println(" Symmetric Cipher Benchmark");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1659,8 +1656,8 @@ public class CryptoBenchmark {
             }
 
             /* Run RSA benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("RSA Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1681,8 +1678,8 @@ public class CryptoBenchmark {
             }
 
             /* Run ECC benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("ECC Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1707,8 +1704,8 @@ public class CryptoBenchmark {
             }
 
             /* Run HMAC benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("HMAC Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1726,8 +1723,8 @@ public class CryptoBenchmark {
             }
 
             /* Run DH benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("DH Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1750,8 +1747,8 @@ public class CryptoBenchmark {
                 }
             }
 
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("ECDH Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1776,8 +1773,8 @@ public class CryptoBenchmark {
             }
 
             /* Run PBKDF2 benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("PBKDF2 Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1793,8 +1790,8 @@ public class CryptoBenchmark {
             }
 
             /* Run MessageDigest benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("MessageDigest Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1821,8 +1818,8 @@ public class CryptoBenchmark {
             }
 
             /* Run Signature benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("Signature Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
@@ -1838,8 +1835,8 @@ public class CryptoBenchmark {
             }
 
             /* Run KeyGenerator benchmarks with clean provider setup */
-            System.out.println("----------------------------------------------"
-              + "-------------------------------");
+            System.out.println("\n---------------------------------------------"
+              + "--------------------------------");
             System.out.println("KeyGenerator Benchmark Results");
             System.out.println("----------------------------------------------"
               + "-------------------------------\n");
